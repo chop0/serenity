@@ -313,9 +313,6 @@ pub struct Client {
 impl Client {
     /// Creates a Client for a bot user.
     ///
-    /// Discord has a requirement of prefixing bot tokens with `"Bot "`, which
-    /// this function will automatically do for you if not already included.
-    ///
     /// # Examples
     ///
     /// Create a Client, using a token from an environment variable:
@@ -350,16 +347,8 @@ impl Client {
     pub fn new_with_handlers<H, RH>(token: impl AsRef<str>, handler: Option<H>, raw_handler: Option<RH>) -> Result<Self>
         where H: EventHandler + Send + Sync + 'static,
               RH: RawEventHandler + Send + Sync + 'static {
-        let token = token.as_ref().trim();
-
-        let token = if token.starts_with("Bot ") {
-            token.to_string()
-        } else {
-            format!("Bot {}", token)
-        };
-
+        let token = token.as_ref().trim().to_string();
         let http = Http::new_with_token(&token);
-
         let name = "serenity client".to_owned();
         let threadpool = ThreadPool::with_name(name, 5);
         let url = Arc::new(Mutex::new(http.get_gateway()?.url));
@@ -424,9 +413,6 @@ impl Client {
     /// If `duration` is set to `None`, updating the cache will try to claim
     /// a write-lock until success and potentially deadlock.
     ///
-    /// Discord has a requirement of prefixing bot tokens with `"Bot "`, which
-    /// this function will automatically do for you if not already included.
-    ///
     /// # Examples
     ///
     /// Create a Client, using a token from an environment variable:
@@ -454,14 +440,7 @@ impl Client {
     #[cfg(all(feature = "cache", feature = "http"))]
     pub fn new_with_cache_update_timeout<H>(token: impl AsRef<str>, handler: H, duration: Option<Duration>) -> Result<Self>
         where H: EventHandler + Send + Sync + 'static {
-        let token = token.as_ref().trim();
-
-        let token = if token.starts_with("Bot ") {
-            token.to_string()
-        } else {
-            format!("Bot {}", token)
-        };
-
+        let token = token.as_ref().trim().to_string();
         let http = Http::new_with_token(&token);
 
         let name = "serenity client".to_owned();
