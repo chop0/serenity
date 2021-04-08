@@ -343,10 +343,10 @@ impl Http {
 
     /// Reacts to a message.
     pub fn create_reaction(&self,
-                        channel_id: u64,
-                        message_id: u64,
-                        reaction_type: &ReactionType)
-                        -> Result<()> {
+                           channel_id: u64,
+                           message_id: u64,
+                           reaction_type: &ReactionType)
+                           -> Result<()> {
         self.wind(204, Request {
             body: None,
             headers: None,
@@ -365,7 +365,7 @@ impl Http {
         self.fire(Request {
             body: Some(&body),
             headers: None,
-            route: RouteInfo::CreateRole {guild_id },
+            route: RouteInfo::CreateRole { guild_id },
         })
     }
 
@@ -510,11 +510,11 @@ impl Http {
     /// Deletes a reaction from a message if owned by us or
     /// we have specific permissions.
     pub fn delete_reaction(&self,
-                        channel_id: u64,
-                        message_id: u64,
-                        user_id: Option<u64>,
-                        reaction_type: &ReactionType)
-                        -> Result<()> {
+                           channel_id: u64,
+                           message_id: u64,
+                           user_id: Option<u64>,
+                           reaction_type: &ReactionType)
+                           -> Result<()> {
         let user = user_id
             .map(|uid| uid.to_string())
             .unwrap_or_else(|| "@me".to_string());
@@ -605,7 +605,7 @@ impl Http {
         self.fire(Request {
             body: Some(&body),
             headers: None,
-            route: RouteInfo::EditChannel {channel_id },
+            route: RouteInfo::EditChannel { channel_id },
         })
     }
 
@@ -871,11 +871,11 @@ impl Http {
     /// [`Message`]: ../../model/channel/struct.Message.html
     /// [Discord docs]: https://discordapp.com/developers/docs/resources/webhook#querystring-params
     pub fn execute_webhook(&self,
-                        webhook_id: u64,
-                        token: &str,
-                        wait: bool,
-                        map: &JsonMap)
-                        -> Result<Option<Message>> {
+                           webhook_id: u64,
+                           token: &str,
+                           wait: bool,
+                           map: &JsonMap)
+                           -> Result<Option<Message>> {
         let body = serde_json::to_vec(map)?;
 
         let mut headers = Headers::new();
@@ -926,11 +926,11 @@ impl Http {
 
     /// Gets all audit logs in a specific guild.
     pub fn get_audit_logs(&self,
-                        guild_id: u64,
-                        action_type: Option<u8>,
-                        user_id: Option<u64>,
-                        before: Option<u64>,
-                        limit: Option<u8>) -> Result<AuditLogs> {
+                          guild_id: u64,
+                          action_type: Option<u8>,
+                          user_id: Option<u64>,
+                          before: Option<u64>,
+                          limit: Option<u8>) -> Result<AuditLogs> {
         self.fire(Request {
             body: None,
             headers: None,
@@ -1095,10 +1095,10 @@ impl Http {
     /// Gets the members of a guild. Optionally pass a `limit` and the Id of the
     /// user to offset the result by.
     pub fn get_guild_members(&self,
-                            guild_id: u64,
-                            limit: Option<u64>,
-                            after: Option<u64>)
-                            -> Result<Vec<Member>> {
+                             guild_id: u64,
+                             limit: Option<u64>,
+                             after: Option<u64>)
+                             -> Result<Vec<Member>> {
         let response = self.request(Request {
             body: None,
             headers: None,
@@ -1289,12 +1289,12 @@ impl Http {
 
     /// Gets user Ids based on their reaction to a message. This endpoint is dumb.
     pub fn get_reaction_users(&self,
-                            channel_id: u64,
-                            message_id: u64,
-                            reaction_type: &ReactionType,
-                            limit: u8,
-                            after: Option<u64>)
-                            -> Result<Vec<User>> {
+                              channel_id: u64,
+                              message_id: u64,
+                              reaction_type: &ReactionType,
+                              limit: u8,
+                              after: Option<u64>)
+                              -> Result<Vec<User>> {
         let reaction = reaction_type.as_data();
 
         self.fire(Request {
@@ -1448,6 +1448,29 @@ impl Http {
         })
     }
 
+    pub fn search_messages(&self, guild_id: u64, content: String) -> Result<Vec<Message>> {
+        let x = self.fire(Request {
+            body: None,
+            headers: None,
+            route: RouteInfo::SearchMessages {
+                guild_id,
+                content,
+            },
+        }).map(|mut x: Map<String, Value>| x.remove("messages")
+            .expect("Invalid response on search endpoint."))
+            .map(|mut x| x.take())
+            .map(|mut x| {
+                let mut x = x.as_array_mut().unwrap();
+                let mut vals = vec![];
+                for i in x.iter_mut() {
+                    let i = i.take().as_array_mut().unwrap().get_mut(0).unwrap().take();
+                    vals.push(serde_json::from_value(i).unwrap());
+                }
+                vals
+            });
+        x
+    }
+
     /// Leaves a guild.
     pub fn leave_guild(&self, guild_id: u64) -> Result<()> {
         self.wind(204, Request {
@@ -1487,23 +1510,22 @@ impl Http {
         let mut file_num = "0".to_string();
 
         for file in files {
-
             match file.into() {
                 AttachmentType::Bytes((bytes, filename)) => {
                     multipart = multipart
                         .part(file_num.to_string(), Part::bytes(bytes.to_vec())
                             .file_name(filename.to_string()));
-                },
+                }
                 AttachmentType::File((file, filename)) => {
                     multipart = multipart
                         .part(file_num.to_string(),
-                            Part::reader(file.try_clone()?)
-                                .file_name(filename.to_string()));
-                },
+                              Part::reader(file.try_clone()?)
+                                  .file_name(filename.to_string()));
+                }
                 AttachmentType::Path(path) => {
                     multipart = multipart
                         .file(file_num.to_string(), path)?;
-                },
+                }
                 AttachmentType::__Nonexhaustive => unreachable!(),
             }
 
@@ -1519,7 +1541,7 @@ impl Http {
                 Value::Bool(true) => multipart = multipart.text(k.clone(), "true"),
                 Value::Number(inner) => multipart = multipart.text(k.clone(), inner.to_string()),
                 Value::String(inner) => multipart = multipart.text(k.clone(), inner),
-                Value::Object(inner) =>multipart =  multipart.text(k.clone(), serde_json::to_string(&inner)?),
+                Value::Object(inner) => multipart = multipart.text(k.clone(), serde_json::to_string(&inner)?),
                 _ => continue,
             };
         }
@@ -1734,19 +1756,17 @@ impl Http {
         //
         // If it doesn't and the loop breaks, try one last time.
         for _ in 0..3 {
-
             match request.build(&self.client, &self.token)?.send() {
                 Ok(response) => return Ok(response),
                 Err(reqwest_error) => {
                     if let Some(io_error) = reqwest_error.get_ref().and_then(|e| e.downcast_ref::<std::io::Error>()) {
-
                         if let IoErrorKind::ConnectionAborted = io_error.kind() {
                             continue;
                         }
                     }
 
                     return Err(reqwest_error.into());
-                },
+                }
             }
         }
 

@@ -3,8 +3,6 @@
 // Currently exists for backwards compatibility to previous Rust versions.
 #![recursion_limit = "128"]
 
-extern crate proc_macro;
-
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
@@ -27,6 +25,7 @@ use attributes::*;
 use consts::*;
 use structures::*;
 use util::*;
+use syn::token::Token;
 
 macro_rules! match_options {
     ($v:expr, $values:ident, $options:ident, $span:expr => [$($name:ident);*]) => {

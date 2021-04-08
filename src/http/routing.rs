@@ -101,6 +101,7 @@ pub enum Route {
     ///
     /// [`ChannelId`]: ../../model/id/struct.ChannelId.html
     ChannelsIdWebhooks(u64),
+    ChannelsIdMessagesSearch,
     /// Route for the `/gateway` path.
     Gateway,
     /// Route for the `/gateway/bot` path.
@@ -282,7 +283,7 @@ impl Route {
         channel_id: u64,
         message_id: u64,
         user_id: D,
-        reaction_type: T
+        reaction_type: T,
     ) -> String where D: Display, T: Display {
         format!(
             api!("/channels/{}/messages/{}/reactions/{}/{}"),
@@ -298,6 +299,10 @@ impl Route {
         message_id: u64,
     ) -> String {
         api!("/channels/{}/messages/{}/reactions", channel_id, message_id)
+    }
+
+    pub fn search_messages(guild_id: u64, content: String) -> String {
+        format!(api!("/guilds/{}/messages/search?content={}"), guild_id, content)
     }
 
     pub fn channel_message_reactions_list(
@@ -614,7 +619,7 @@ impl Route {
     }
 
     pub fn webhook_with_token_optioned<D>(webhook_id: u64, token: D, wait: bool)
-        -> String where D: Display {
+                                          -> String where D: Display {
         format!(api!("/webhooks/{}/{}?wait={}"), webhook_id, token, wait)
     }
 }
@@ -655,6 +660,10 @@ pub enum RouteInfo<'a> {
     },
     CreateMessage {
         channel_id: u64,
+    },
+    SearchMessages {
+        guild_id: u64,
+        content: String,
     },
     CreatePermission {
         channel_id: u64,
@@ -1440,7 +1449,15 @@ impl<'a> RouteInfo<'a> {
                 Route::ChannelsIdPinsMessageId(channel_id),
                 Cow::from(Route::channel_pin(channel_id, message_id)),
             ),
+            RouteInfo::SearchMessages { guild_id, ref content } => {
+                (
+                    LightMethod::Get,
+                    Route::ChannelsIdMessagesSearch,
+                    Cow::from(Route::search_messages(guild_id, content.clone()))
+                )
+            },
             RouteInfo::__Nonexhaustive => unreachable!(),
+
         }
     }
 }
